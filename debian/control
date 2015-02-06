@@ -1,0 +1,16 @@
+Source: metno-vaa-kml
+Section: perl
+Priority: optional
+Maintainer: David Boddie <david.boddie@met.no>
+Build-Depends: debhelper (>= 8), libmodule-install-perl
+Build-Depends-Indep: perl
+Standards-Version: 3.9.7
+Homepage: http://www.met.no/
+
+Package: metno-vaa-kml
+Architecture: all
+Depends: libtemplate-perl, libregexp-grammars-perl, ${misc:Depends},
+ ${perl:Depends}
+Description: Tool to convert VAA messages to KML files.
+ Converts Volcanic Ash Advisory (VAA) messages to Keyhole Markup Language
+ (KML) format for use with graphical forecasting tools, like Diana.

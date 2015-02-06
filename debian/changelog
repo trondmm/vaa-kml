@@ -1,0 +1,30 @@
+metno-vaa-kml (0.3.1-1) precise; urgency=low
+
+  * Rebuilt with updated sources.
+
+ -- David Boddie <david.boddie@met.no>  Mon, 15 Dec 2014 15:58:07 +0100
+
+metno-vaa-kml (0.3.0-2) unstable; urgency=low
+
+  * Updated dependencies.
+
+ -- David Boddie <david.boddie@met.no>  Tue, 24 Jun 2014 14:54:52 +0200
+
+metno-vaa-kml (0.3.0-1) unstable; urgency=low
+
+  * Updated dependencies.
+  * Renumbered the package.
+
+ -- David Boddie <david.boddie@met.no>  Tue, 24 Jun 2014 13:33:39 +0200
+
+metno-vaa-kml (0.2) unstable; urgency=low
+
+  * Rebuilt with new bug fixes.
+
+ -- David Boddie <david.boddie@met.no>  Fri, 30 May 2014 16:56:55 +0200
+
+metno-vaa-kml (0.1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- David Boddie <david.boddie@met.no>  Fri, 16 May 2014 16:53:20 +0200

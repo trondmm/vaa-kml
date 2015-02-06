@@ -1,0 +1,371 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2014 MET Norway (met.no)
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+use warnings;
+use strict;
+use LWP::Simple;
+use HTML::TreeBuilder;
+use Template;
+use Data::Dumper;
+
+#my $url = "file:///disk1/ash/e.20130703145900.GRIMSVOTN.201301.201307031445.html";
+#my $url = "file:///disk1/ash/e.20130903095900.VULCANO.2013001.201309031000.html";
+#my $url = "file://" . $ARGV[0];
+#my $doc = get $url 
+#    or die "Could not fetch $url";
+
+my $infile = shift;
+(my $outfile = $infile) =~ s/\.html$/.kml/;
+my $doc = readfile($infile);
+
+my $tree = HTML::TreeBuilder->new_from_content($doc);
+my $ash = $tree->look_down(_tag => "pre");
+
+my @lines = split /[\n\r]+/, $ash->as_text;
+my @content;
+
+my %ash;
+my $parser = get_parser();
+my $error = 0;
+my @fail;
+my $seencolon = 0;
+
+# Loop though lines, append any line not containing ":" to the previous
+# Push result into @content
+for (my $i=0; $i<$#lines; $i++) {
+    my $line = $lines[$i];
+    chomp $line;
+    next unless $line =~ /\S/;
+    last if $line =~ /^=\s*$/;
+    $line =~ s/^\s+//;
+    $line =~ s/\s+$//;
+
+    if ($line !~ /:/) {
+	if (not $seencolon) {
+	    push @content, $line;
+	} else {
+#	    print "appending: $line (\$i = $i)\n";
+	    $content[-1] .= " " . $line;
+	}
+    } else {
+#	print $line, "\n";
+	$seencolon = 1;
+	push @content, $line;
+    }
+}
+
+# Match each line against grammar
+# Put result in %ash
+for (my $i=0; $i<$#content; $i++) {
+    my $line = $content[$i];
+    if ($line =~ $parser) {
+#	delete $/{''};
+	my ($k, $v) = %/; # only one key left
+
+	if ($k eq 'FCSTVACLD') {
+	    $ash{lc $k}{ $v->{offset} } = $v;
+	} else {
+	    $ash{lc $k} = $v;
+	}
+    } else {
+#	warn "   --- could not parse following line: ---\n";
+#	print $line, "\n";
+	$error++;
+	push @fail, $line;
+    }
+}
+
+if ($error) {
+    print $ARGV[0], "\n";
+    print "  Failed to parse $error of " . scalar @content . " lines\n";
+    print "  $_\n" for @fail;
+    print "\n";
+#    print "Fail\n";
+} else {
+#    print scalar @content . " lines parsed successfully\n";
+#    print "Success\n";
+}
+
+
+my @fcast;
+my $forecasts = delete $ash{fcstvacld};
+for my $offset (sort {$a <=> $b} keys %$forecasts) {
+    push @fcast, $forecasts->{$offset};
+}
+$ash{forecasts} = \@fcast;
+$ash{observation} = {
+    %{ delete $ash{obsvacld} },
+    %{ delete $ash{obsvadtg} }
+};
+
+#print Dumper \%ash;
+
+my $tpl = Template->new({INCLUDE_PATH => '/usr/share/metno-vaa-kml'});
+$tpl->process("volcano.tt", \%ash, $outfile); # || die $tpl->error(), "\n";
+
+sub readfile {
+    my $file = shift;
+    my $fh;
+    open $fh, $file or return;
+    local $/ unless wantarray;
+    <$fh>;
+}
+
+sub get_parser {
+    use Regexp::Grammars;
+    return qr{
+        <nocontext:>
+
+        ^
+        (?: <TYPE>
+        |   <UNKNOWNCODE>
+        |   <DTG>
+        |   <VAAC>
+        |   <VOLCANO>
+        |   <PSN>
+        |   <AREA>
+        |   <SUMMITELEV>
+        |   <ADVISORYNR>
+        |   <INFOSOURCE>
+        |   <AVCOLORCODE>
+        |   <ERUPTIONDETAILS>
+        |   <OBSVADTG>
+        |   <ESTVADTG>
+        |   <OBSVACLD>
+        |   <ESTVACLD>
+        |   <FCSTVACLD>
+        |   <REMARKS>
+        |   <NEXTADVISORY>
+        )
+        \.? 
+        $
+
+        <token: anytext> .*
+        <token: anydateformat> (?: <Daytime=fulldate> | <Daytime> )
+
+        <token: year>  \d\d\d\d
+        <token: month> \d\d
+        <token: day>   \d\d
+        <token: hour>  \d\d
+        <token: min>   \d\d
+
+        <token: fulldate>
+            <year> <month> <day> [/ ]? <hour> <min> <tz>?
+
+        <token: time>
+           <hour> <min> <tz>?
+        
+        <token: tz>
+           [+-]\d\d\d\d | Z
+        
+        <token: Daytime>
+           <day> / <time>
+           <MATCH=(?{ { day => $MATCH{day}, %{$MATCH{time}} } })>
+        
+        <token: flightlevel>
+           (?:
+               <MATCH=singleflightlevel>
+               | 
+               <MATCH=doubleflightlevel>
+           )
+
+        <token: doubleflightlevel>
+           FL <from=level> / <to=level>
+
+        <token: singleflightlevel>
+           SFC / FL <to=level>
+           (?{ $MATCH{from} = 0 })
+        
+        <token: level> 
+           \d\d\d
+
+        <token: lat>
+           <direction=([NS])> <degree=(\d\d\d?)> <minute=([0-5]\d)>
+           <MATCH=(?{ ($MATCH{degree} + $MATCH{minute} / 60) * ($MATCH{direction} eq "S" ? -1 : 1)})>
+        
+        <token: lon>
+           <direction=([EW])> <degree=(\d\d\d)> <minute=([0-5]\d)>
+           <MATCH=(?{ ($MATCH{degree} + $MATCH{minute} / 60) * ($MATCH{direction} eq "W" ? -1 : 1)})>
+        
+        <rule: latlonpair>
+           <lat> <lon>
+#           <MATCH=(?{ [$MATCH{lat}, $MATCH{lon}] })>
+        
+        <rule: movement>
+            MOV <direction> <speed=(\d+)> <unit=(KT)>
+
+        <token: direction>
+            (?: [NSWE]
+            |   NE  | SE  | SW  | NW
+            |   NNE | ENE | ESE | SSE
+            |   NNW | WNW | WSW | SSW
+            )
+            
+        <token: separator>
+            <.ws> - <.ws>
+        
+        <rule: ForecastArea>
+            <flightlevel>
+            <[pos=latlonpair]>+ % <.separator>
+            <movement>?
+
+        <rule: TYPE> VA ADVISORY
+
+        <rule: UNKNOWNCODE>
+            FV\w\w\d\d \w{4} \d{6} (?: CCA )?
+
+        <rule: DTG>
+            DTG: <MATCH=fulldate>
+
+        <rule: VAAC>
+            VAAC: <MATCH=anytext>
+
+        <rule: VOLCANO>
+            VOLCANO: 
+            (?:
+                <name=anytext> \s+ <id=iavcei>
+            |
+                UNKNOWN
+            )
+
+        <token: iavcei>
+            \d+(\-\d+)?
+
+        <rule: PSN>
+            PSN: <MATCH=latlonpair>
+
+        <rule: AREA>
+            AREA: <name=anytext>
+
+        <rule: SUMMITELEV>
+            SUMMIT ELEV: 
+            (?: 
+                <ele=(\d+)> (?: <units=meters> | <units=feet> )
+                (?: \( \d+ (?: <meters> | <feet> ) \) )?
+            |
+                UNKNOWN
+            )
+
+        <token: meters> M
+
+        <token: feet> FT
+
+        <rule: ADVISORYNR>
+            ADVISORY NR: <year> / <seq=(\d+)>
+
+        <rule: INFOSOURCE>
+            INFO SOURCE: <MATCH=anytext>
+
+        <rule: AVCOLORCODE>
+            AVIATION COLOU?R CODE:
+            <MATCH=(RED | ORANGE | YELLOW | GREEN | UNKNOWN | NOT GIVEN | NIL | UNKNOWN)>?
+
+        <rule: ERUPTIONDETAILS>
+            ERUPTION DETAILS: <MATCH=anytext>
+
+        <token: REMARKS>
+            (?: REMARKS | RMK): <.ws> <MATCH=anytext>
+
+        <rule: NEXTADVISORY>
+            NXT ADVISORY: 
+            (?: <anydateformat>
+            |   <text=(NO LATER THAN)> <anydateformat>
+            |   <text=(WILL BE ISSUED BY)> <anydateformat>
+            |   <text=(NO FURTHER ADVISOR(?: Y | IES))>
+            )
+
+        <rule: OBSVADTG>
+            OBS VA DTG: <MATCH=anydateformat>?
+
+        <rule: ESTVADTG>
+            EST VA DTG: <MATCH=anydateformat>?
+
+        <rule: OBSVACLD>
+            OBS VA CLD:
+            (?:
+              <[ForecastArea]>+ % <.ws>
+            | <message=fcstmessage>
+            | <message=notobserved>
+            )?
+
+        <rule: ESTVACLD>
+            EST VA CLD: 
+            (?:
+              <[ForecastArea]>+ % <.ws>
+            | <message=fcstmessage>
+            )?
+
+        <rule: notavailable> NOT AVBL
+        <rule: noash>        NO VA EXP <anytext>?
+        <rule: notprovided>  NOT PROVIDED
+        <rule: notobserved>  VA NOT OBSERVED
+
+        <rule: notidentifiable> 
+            (?: VA | ASH ) NOT IDENTIFIABLE <anytext>
+
+        <rule: terminated>    <anytext> TERMINATED
+        <rule: endofexercise> <anytext> END OF EXERCISE
+
+        <rule: fcstmessage>
+            (?: <noash>
+            |   <notavailable>
+            |   <notprovided>
+            |   <notidentifiable>
+            |   <terminated>
+            |   <endofexercise>
+            )
+
+        <rule: FCSTVACLD>
+            FCST VA CLD \+ <offset=(\d+)>HR?: 
+            (?:
+                <Daytime> 
+                (?: 
+                    (?:
+                      <[ForecastArea]>+ % <.ws>
+                    | <message=fcstmessage>
+                    )?
+                |
+                    <flightlevel>
+                    <message=fcstmessage>
+                )
+            |
+                <message=fcstmessage>
+            )?
+
+    }x;
+
+}
+
+__END__
+
+N     0
+NNE  22.5
+NE   45
+ENE  67.5
+E    90
+ESE 112.5
+SE  135
+SSE 157.5
+S   180
+SSW 202.5
+SW  225
+WSW 247.5
+W   270
+WNW 292.5
+NW  315
+NNW 337.5

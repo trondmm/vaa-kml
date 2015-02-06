@@ -1,0 +1,8 @@
+Useful links
+------------
+
+Packaging your Perl script for Debian:
+http://michael.stapelberg.de/Artikel/perl_debian_packaging
+
+Debian Perl Policy:
+https://www.debian.org/doc/packaging-manuals/perl-policy/index.html

@@ -11,7 +11,7 @@ Install the script's Perl dependencies:
 The script is run with a single argument to specify the HTML file to
 process:
 
-  ./parseasl.pl <HTML file>
+  ./metno-vaa-kml <HTML file>
 
 A KML file will be created with the same name as the original HTML file but
 with a .kml file extension.

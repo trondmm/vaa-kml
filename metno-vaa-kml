@@ -16,6 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+
 use warnings;
 use strict;
 use LWP::Simple;
@@ -91,7 +94,7 @@ for (my $i=0; $i<$#content; $i++) {
 }
 
 if ($error) {
-    print $ARGV[0], "\n";
+    print "$infile\n";
     print "  Failed to parse $error of " . scalar @content . " lines\n";
     print "  $_\n" for @fail;
     print "\n";
@@ -101,7 +104,6 @@ if ($error) {
 #    print "Success\n";
 }
 
-
 my @fcast;
 my $forecasts = delete $ash{fcstvacld};
 for my $offset (sort {$a <=> $b} keys %$forecasts) {
@@ -109,8 +111,8 @@ for my $offset (sort {$a <=> $b} keys %$forecasts) {
 }
 $ash{forecasts} = \@fcast;
 $ash{observation} = {
-    %{ delete $ash{obsvacld} },
-    %{ delete $ash{obsvadtg} }
+    %{ delete $ash{obsvacld} // {} },
+    %{ delete $ash{obsvadtg} // {} }
 };
 
 #print Dumper \%ash;
@@ -301,6 +303,7 @@ sub get_parser {
               <[ForecastArea]>+ % <.ws>
             | <message=fcstmessage>
             | <message=notobserved>
+            | <message=notdetected>
             )?
 
         <rule: ESTVACLD>
@@ -314,6 +317,7 @@ sub get_parser {
         <rule: noash>        NO VA EXP <anytext>?
         <rule: notprovided>  NOT PROVIDED
         <rule: notobserved>  VA NOT OBSERVED
+        <rule: notdetected>  NO VA DETECTED
 
         <rule: notidentifiable> 
             (?: VA | ASH ) NOT IDENTIFIABLE <anytext>

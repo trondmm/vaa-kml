@@ -49,6 +49,9 @@
     <ExtendedData>
       <Data name="met:groupId"><value>[% id %]</value></Data>
       <Data name="met:layerId"><value>0</value></Data>
+      [%- IF area.movement; mov = area.movement; %]
+      <Data name="met:movement"><value>[% mov.direction %] [% mov.speed %][% mov.unit %]</value></Data>
+      [%- END %]
       <Data name="met:objectType"><value>PolyLine</value></Data>
 [%- IF name == "Observation" %]
       <Data name="met:style:type"><value>Ash cloud FL[% fl.from %]/[% fl.to %] (observed)</value></Data>

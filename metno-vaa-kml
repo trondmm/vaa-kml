@@ -342,7 +342,7 @@ sub get_parser {
             )
 
         <rule: FCSTVACLD>
-            FCST VA CLD \+ <offset=(\d+)>HR?: 
+            FCST VA CLD \+ <offset=(\d+)><.ws>?HR?: 
             (?:
                 <Daytime> 
                 (?: 

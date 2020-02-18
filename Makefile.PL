@@ -5,7 +5,7 @@ use warnings;
 use inc::Module::Install;
 
 name 'metno-vaa-kml';
-version '0.3.5';
+version '0.3.6';
 
 requires 'LWP::Simple';
 requires 'HTML::TreeBuilder';

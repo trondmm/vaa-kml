@@ -1,3 +1,10 @@
+metno-vaa-kml (0.3.6-1) precise; urgency=low
+
+  * Support UK html format
+  * Support whitespace for hour offset format in FCST VA CLD
+
+ -- Trond Michelsen <trond.michelsen@met.no>  Tue, 18 Feb 2020 18:22:00 +0100
+
 metno-vaa-kml (0.3.5-1) precise; urgency=low
 
   * Rebuilt with updated sources.

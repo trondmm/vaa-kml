@@ -1,6 +1,10 @@
 metno-vaa-kml changelog
 -----------------------
 
+0.3.6 (2020-02-18)
+Support UK html format
+Support whitespace for hour format in FCST VA CLD
+
 0.3.5 (2015-07-03)
 Updated the name used for the volcanic eruption symbol to match that used in Diana.
 

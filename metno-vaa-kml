@@ -39,6 +39,13 @@ my $doc = readfile($infile);
 my $tree = HTML::TreeBuilder->new_from_content($doc);
 my $ash = $tree->look_down(_tag => "pre");
 
+if (not defined $ash) {
+    my $contentnode = $tree->look_down(_tag => "div", id => "colcentre")->look_down(_tag => "p");
+    my $content =  $contentnode->format();
+    $ash = HTML::Element->new('pre');
+    $ash->push_content($content);
+}
+
 my @lines = split /[\n\r]+/, $ash->as_text;
 my @content;
 
@@ -54,7 +61,7 @@ for (my $i=0; $i<$#lines; $i++) {
     my $line = $lines[$i];
     chomp $line;
     next unless $line =~ /\S/;
-    last if $line =~ /^=\s*$/;
+    last if $line =~ /^\s*=\s*$/;
     $line =~ s/^\s+//;
     $line =~ s/\s+$//;
 

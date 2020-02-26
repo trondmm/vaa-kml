@@ -26,6 +26,8 @@ use HTML::TreeBuilder;
 use Template;
 use Data::Dumper;
 
+our $VERSION = '0.3.6';
+
 my $SHAREDIR  = "/usr/share/metno-vaa-kml";
 
 my $GRAMMARFILE  = "volcano.grammar";

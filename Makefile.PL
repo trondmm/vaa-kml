@@ -22,6 +22,7 @@ install_vendor:: extra_install
 extra_install:
 	install -d $(DESTDIR)/usr/share/metno-vaa-kml
 	install -m 640 share/metno-vaa-kml/volcano.tt $(DESTDIR)/usr/share/metno-vaa-kml/volcano.tt
+	install -m 640 share/metno-vaa-kml/volcano.grammar $(DESTDIR)/usr/share/metno-vaa-kml/volcano.grammar
 END_OF_MAKEFILE
 
 WriteAll;
